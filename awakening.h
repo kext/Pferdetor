@@ -25,8 +25,6 @@
 // To calculate the index in the array, the first byte of the string is shifted to the right by two.
 
 class Awakening {
-    const unsigned char *glyphs;
-    const short *index;
     static int TEXT_LENGTH(const unsigned char *glyph) {
       return glyph[0];
     }
@@ -53,33 +51,10 @@ class Awakening {
     static int LENGTH(const unsigned char *glyph) {
       return TEXT_LENGTH(glyph) + GLYPH_LENGTH(glyph) + 2;
     }
-    // Lookup a glyph by text.
-    const unsigned char *lookup_glyph(const unsigned char *text) {
-      int i, l;
-      const unsigned char *glyph;
-      int o;
-      if (!text || !*text) return nullptr;
-      o = index[*text >> 2];
-      if (o < 0) {
-        return 0;
-      } else {
-        glyph = glyphs + o;
-      }
-      while ((l = *glyph)) {
-        if (TEXT(glyph)[0] > text[0]) return nullptr;
-        for (i = 0; i < l; ++i) {
-          if (TEXT(glyph)[i] != text[i]) goto next;
-        }
-        return glyph;
-    next:
-        glyph += LENGTH(glyph);
-      }
-      return nullptr;
-    }
-    int _min(int a, int b) {
+    static int _min(int a, int b) {
       return a > b ? b : a;
     }
-    int _max(int a, int b) {
+    static int _max(int a, int b) {
       return a < b ? b : a;
     }
     static constexpr int SPACE_WIDTH = 3;
@@ -98,17 +73,17 @@ class Awakening {
     // Typeset a line of text at position `x`, `y` with a _maximum width of `w`.
     // Return the actual width used.
     template<class Display>
-    int text(Display &d, const char *text, int x, int y, int w) {
+    static int text(Display &d, const char *text, int x, int y, int w) {
       return text_with_options(d, text, x, y, w, LEFT);
     }
     // Typeset a line of text centered between x and x+w.
     template<class Display>
-    int text_centered(Display &d, const char *text, int x, int y, int w) {
+    static int text_centered(Display &d, const char *text, int x, int y, int w) {
       return text_with_options(d, text, x, y, w, CENTER);
     }
     // Typeset a line of text with the given set of options.
     template<class Display>
-    int text_with_options(Display &d, const char *text, int x, int y, int w, int options) {
+    static int text_with_options(Display &d, const char *text, int x, int y, int w, int options) {
       const unsigned char *glyph, *g;
       unsigned char esc[] = {27, 0, 0};
       int i, n = 0, r, s, q = 0, is_num, was_num = 0;
@@ -189,8 +164,9 @@ class Awakening {
       }
       return n;
     }
-    Awakening() {
-      static const unsigned char awakening[] = {
+    // Lookup a glyph by text.
+    static const unsigned char *lookup_glyph(const unsigned char *text) {
+      static const unsigned char glyphs[] = {
         /* "\t" */ 1, 9, 8, 0, 0, 0, 0, 0, 0, 0, 0,
         /* "\e1" */ 2, 27, 49, 3, 34, 63, 32,
         /* "\ed" */ 2, 27, 100, 5, 16, 48, 112, 48, 16,
@@ -357,7 +333,7 @@ class Awakening {
         /* "…" */ 3, 226, 128, 166, 5, 32, 0, 32, 0, 32,
         0
       };
-      static const short awakening_index[] = {
+      static const short index[] = {
         -1, -1, 0, -1, -1, -1, 11, -1,
         60, 78, 106, 124, 148, 178, 210, 235,
         261, 295, 327, 357, 389, 421, 453, 482,
@@ -367,7 +343,25 @@ class Awakening {
         725, 1407, -1, 1433, -1, -1, -1, -1,
         1442, -1, -1, -1, -1, -1, -1, -1,
       };
-      glyphs = awakening;
-      index = awakening_index;
+      int i, l;
+      const unsigned char *glyph;
+      int o;
+      if (!text || !*text) return nullptr;
+      o = index[*text >> 2];
+      if (o < 0) {
+        return 0;
+      } else {
+        glyph = glyphs + o;
+      }
+      while ((l = *glyph)) {
+        if (TEXT(glyph)[0] > text[0]) return nullptr;
+        for (i = 0; i < l; ++i) {
+          if (TEXT(glyph)[i] != text[i]) goto next;
+        }
+        return glyph;
+        next:
+        glyph += LENGTH(glyph);
+      }
+      return nullptr;
     }
 };
